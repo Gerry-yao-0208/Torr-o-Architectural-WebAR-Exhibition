@@ -1,0 +1,14 @@
+[
+  {
+    "file": "controller-mGt1s8dJ.js",
+    "url": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/controller-mGt1s8dJ.js",
+    "bytes": 2199370,
+    "sha256": "98a90806c01077a46fc5a3daddc6441ac9d61c5b85b3cc09d3f0b2087d228713"
+  },
+  {
+    "file": "ui-fBadYuor.js",
+    "url": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/ui-fBadYuor.js",
+    "bytes": 4552,
+    "sha256": "aed9538fec28fecfb0a564da48fbf053ac2549d3314746e67182d381b3a24c31"
+  }
+]
