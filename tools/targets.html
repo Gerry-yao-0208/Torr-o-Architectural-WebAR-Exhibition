@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Torrao 目标图自检</title>
+<style>
+  body { max-width: 900px; margin: 40px auto; padding: 0 20px; font: 16px/1.6 system-ui; color: #eef2e8; background: #111712; }
+  button, a { color: #d8ff5f; } button { padding: 12px 18px; margin: 0 10px 12px 0; background: #243027; border: 1px solid #58664e; border-radius: 6px; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: wait; } table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+  th, td { text-align: left; border-bottom: 1px solid #374537; padding: 10px; } .pass { color: #d8ff5f; } .fail { color: #ff9999; }
+  #images { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; } img { width: 100%; } figure { margin: 0; } figcaption { text-align: center; }
+  @media(max-width: 600px) { #images { grid-template-columns: repeat(2, 1fr); } }
+</style>
+<h1>四张目标图自检</h1>
+<p>直接用四张完整原图检查当前识别库，无需摄像头。每张图测试三个大小；通过表示图片匹配和姿态跟踪均成功，实际拍摄仍受清晰度、反光和角度影响。</p>
+<button id="check" disabled>检查当前识别库</button>
+<button id="compile" disabled>重建并下载 targets.mind</button>
+<a href="../">返回 AR 页面</a>
+<p id="state" role="status">正在准备识别引擎…</p>
+<div id="images"></div>
+<table><thead><tr><th>目标</th><th>图像宽度</th><th>匹配</th><th>跟踪点</th><th>结果</th></tr></thead><tbody id="results"></tbody></table>
+<script type="module">
+  const state = document.querySelector('#state');
+  const results = document.querySelector('#results');
+  const buttons = [...document.querySelectorAll('button')];
+  const setBusy = busy => buttons.forEach(button => button.disabled = busy);
+  try {
+    await import('../vendor/mindar-image-1.2.5.prod.js');
+    const response = await fetch('../assets/target-images/manifest.json');
+    if (!response.ok) throw new Error('目标图清单加载失败');
+    const manifest = await response.json();
+    const images = await Promise.all(manifest.targets.map(async target => {
+      const image = new Image();
+      image.src = '../assets/target-images/' + target.image;
+      const figure = document.createElement('figure');
+      const caption = document.createElement('figcaption');
+      caption.textContent = `${target.index + 1}. ${target.name}`;
+      figure.append(image, caption);
+      document.querySelector('#images').append(figure);
+      await image.decode();
+      return image;
+    }));
+
+    async function verify(buffer) {
+      results.replaceChildren();
+      const controller = new MINDAR.IMAGE.Controller({inputWidth: 480, inputHeight: 640});
+      let allPassed = true;
+      try {
+        const {dimensions} = controller.addImageTargetsFromBuffer(buffer);
+        if (dimensions.length !== images.length) throw new Error('识别库的目标数量不是四个');
+        const canvas = document.createElement('canvas');
+        canvas.width = 480; canvas.height = 640;
+        const context = canvas.getContext('2d');
+        for (const target of manifest.targets) {
+          for (const size of [400, 300, 220]) {
+            state.textContent = `正在检查${target.name}（${size}px）…`;
+            context.fillStyle = '#777'; context.fillRect(0, 0, 480, 640);
+            context.drawImage(images[target.index], (480 - size) / 2, (640 - size) / 2, size, size);
+            const {featurePoints} = await controller.detect(canvas);
+            const {modelViewTransform} = await controller.match(featurePoints, target.index);
+            let count = 0, passed = false;
+            if (modelViewTransform) {
+              const tracking = await controller.track(canvas, modelViewTransform, target.index);
+              count = tracking.worldCoords.length;
+              passed = !!await controller.trackUpdate(modelViewTransform, tracking);
+            }
+            allPassed &&= passed;
+            const row = document.createElement('tr');
+            for (const text of [target.name, size + 'px', modelViewTransform ? '成功' : '失败', count, passed ? '通过' : '未通过']) {
+              const cell = document.createElement('td'); cell.textContent = text; row.append(cell);
+            }
+            row.className = passed ? 'pass' : 'fail'; results.append(row);
+          }
+        }
+      } finally {
+        controller.dispose(); controller.worker.terminate();
+      }
+      if (!allPassed) throw new Error('部分测试未通过，请检查上表');
+      state.textContent = '12 / 12 项通过：四张完整原图均可匹配和跟踪。';
+    }
+
+    document.querySelector('#check').addEventListener('click', async () => {
+      setBusy(true);
+      try {
+        const response = await fetch('../assets/targets.mind', {cache: 'no-store'});
+        if (!response.ok) throw new Error('识别库加载失败：HTTP ' + response.status);
+        await verify(await response.arrayBuffer());
+      } catch (error) { state.textContent = error.message; console.error(error); }
+      finally { setBusy(false); }
+    });
+
+    document.querySelector('#compile').addEventListener('click', async () => {
+      setBusy(true);
+      try {
+        const crops = await Promise.all(manifest.targets.map(async target => {
+          const [x, y, width, height] = target.crop;
+          const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(images[target.index], x, y, width, height, 0, 0, width, height);
+          const crop = new Image(); crop.src = canvas.toDataURL('image/png'); await crop.decode(); return crop;
+        }));
+        const compiler = new MINDAR.IMAGE.Compiler();
+        await compiler.compileImageTargets(crops, progress => state.textContent = `正在编译…${Math.round(progress)}%`);
+        const buffer = compiler.exportData();
+        await verify(buffer);
+        const url = URL.createObjectURL(new Blob([buffer], {type: 'application/octet-stream'}));
+        const link = document.createElement('a'); link.href = url; link.download = 'targets.mind'; link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        state.textContent += ' 已下载新库，请替换 assets/targets.mind。';
+      } catch (error) { state.textContent = error.message; console.error(error); }
+      finally { setBusy(false); }
+    });
+    state.textContent = '准备完成，可以开始自检。'; setBusy(false);
+  } catch (error) { state.textContent = '准备失败：' + error.message; console.error(error); }
+</script>
+</html>
