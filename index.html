@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#111712">
+  <title>Torrao 建筑 WebAR</title>
+  <script>if (location.protocol === 'file:') document.documentElement.classList.add('local-file');</script>
+  <link rel="stylesheet" href="./styles.css?v=20261121-web-1">
+  <script src="./vendor/aframe-1.5.0.min.js"></script>
+  <script src="./vendor/mindar-image-aframe-1.2.5.prod.js"></script>
+</head>
+<body>
+  <main id="local-file-notice" class="panel">
+    <p class="eyebrow">TORRAO · WEB AR</p>
+    <h1>请通过网址<br>打开 AR</h1>
+    <p class="intro">请通过发布后的 HTTPS 网页地址访问 AR。本地调试请使用 HTTP 服务，不能直接双击 index.html。</p>
+    <p class="intro">打开网页后点击“开启 AR 体验”，并允许摄像头权限。</p>
+  </main>
+  <main id="welcome" class="panel">
+    <p class="eyebrow">TORRAO · WEB AR</p>
+    <h1>四座建筑，<br>一扇 AR 窗口</h1>
+    <p class="intro">允许摄像头后，将画面对准橘子园、水塔、钟楼或教堂的识别图。</p>
+    <button id="start-button" type="button">开启 AR 体验</button>
+    <p class="privacy">画面只在本机浏览器中用于识别，不会上传。</p>
+  </main>
+
+  <div id="ar-ui" hidden>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">TORRAO · WEB AR</p>
+        <p id="status" role="status" aria-live="polite">正在启动摄像头…</p>
+      </div>
+      <button id="help-button" class="icon-button" type="button" aria-label="显示使用说明">?</button>
+    </header>
+
+    <div class="reticle" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+
+    <section id="target-card" class="target-card" aria-live="polite">
+      <span id="target-number">01</span>
+      <div>
+        <strong id="target-name">等待识别</strong><small id="target-detail">请对准任意一张目标图</small>
+        <div id="video-controls" hidden>
+          <small id="video-status" role="status"></small>
+          <button id="play-video" type="button">播放视频</button>
+          <button id="mute-video" type="button">打开声音</button>
+        </div>
+      </div>
+    </section>
+
+    <dialog id="help-dialog">
+      <button id="close-help" class="dialog-close" type="button" aria-label="关闭">×</button>
+      <p class="eyebrow">使用说明</p>
+      <h2>识别四个场景</h2>
+      <ol>
+        <li>保持目标图片完整出现在画面中。</li>
+        <li>避免强烈反光，并缓慢靠近。</li>
+        <li>识别成功后稍等片刻，模型与视频会自动显示。</li>
+        <li>建筑旁的视频默认静音播放，可点击“打开声音”。图片离开画面后视频会暂停。</li>
+      </ol>
+    </dialog>
+  </div>
+
+  <div id="media-assets" hidden></div>
+  <div id="ar-container">
+    <a-scene
+      id="ar-scene"
+      mindar-image="imageTargetSrc: ./assets/targets.mind?v=20261121-3; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; maxTrack: 1; filterMinCF: 0.001; filterBeta: 0.01; warmupTolerance: 5; missTolerance: 5"
+      color-space="sRGB"
+      renderer="alpha: true; colorManagement: true; physicallyCorrectLights: true; antialias: true"
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false"
+      loading-screen="enabled: false"
+      embedded>
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity light="type: ambient; intensity: 1.35"></a-entity>
+      <a-entity light="type: directional; intensity: 1.8" position="1 2 3"></a-entity>
+
+      <a-entity class="ar-target" mindar-image-target="targetIndex: 0" data-index="0" data-name="Orange Garden" data-model="./assets/models/orange-garden.glb" data-video="./assets/video/橘子园_.mp4">
+        <a-entity class="model" auto-fit-model></a-entity>
+        <a-video class="video-surface" width="0.64" height="0.36" position="0.34 0 0.08" side="double" visible="false"></a-video>
+      </a-entity>
+      <a-entity class="ar-target" mindar-image-target="targetIndex: 1" data-index="1" data-name="Water Tower" data-model="./assets/models/water-tower.glb" data-video="./assets/video/水塔_1.mp4">
+        <a-entity class="model" auto-fit-model></a-entity>
+        <a-video class="video-surface" width="0.64" height="0.36" position="0.34 0 0.08" side="double" visible="false"></a-video>
+      </a-entity>
+      <a-entity class="ar-target" mindar-image-target="targetIndex: 2" data-index="2" data-name="Bell Tower" data-model="./assets/models/bell-tower.glb" data-video="./assets/video/钟楼final.mp4">
+        <a-entity class="model" auto-fit-model></a-entity>
+        <a-video class="video-surface" width="0.64" height="0.36" position="0.34 0 0.08" side="double" visible="false"></a-video>
+      </a-entity>
+      <a-entity class="ar-target" mindar-image-target="targetIndex: 3" data-index="3" data-name="Church" data-model="./assets/models/church.glb" data-video="./assets/video/church_3.mp4">
+        <a-entity class="model" auto-fit-model></a-entity>
+        <a-video class="video-surface" width="0.64" height="0.36" position="0.34 0 0.08" side="double" visible="false"></a-video>
+      </a-entity>
+    </a-scene>
+  </div>
+
+  <script src="./app.js?v=20261121-web-1"></script>
+</body>
+</html>
