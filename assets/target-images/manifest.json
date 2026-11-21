@@ -1,0 +1,50 @@
+{
+  "compilerVersion": "1.2.5",
+  "description": "Full user-provided images resized proportionally to 1024 pixels. Crop rectangles select the feature-rich recognition region; the original full images remain valid markers.",
+  "targets": [
+    {
+      "index": 0,
+      "name": "橘子园",
+      "image": "orange-garden.png",
+      "crop": [
+        112,
+        275,
+        801,
+        474
+      ]
+    },
+    {
+      "index": 1,
+      "name": "水塔",
+      "image": "water-tower.png",
+      "crop": [
+        222,
+        88,
+        580,
+        866
+      ]
+    },
+    {
+      "index": 2,
+      "name": "钟楼",
+      "image": "bell-tower.png",
+      "crop": [
+        182,
+        56,
+        549,
+        879
+      ]
+    },
+    {
+      "index": 3,
+      "name": "教堂",
+      "image": "church.png",
+      "crop": [
+        176,
+        65,
+        696,
+        828
+      ]
+    }
+  ]
+}
